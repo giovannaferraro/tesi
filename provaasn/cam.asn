@@ -1,0 +1,10 @@
+Cam DEFINITIONS ::=
+
+BEGIN
+
+CAM ::= SEQUENCE {
+    protocolVersion INTEGER,
+    subCauseCodeType INTEGER
+}
+
+END
