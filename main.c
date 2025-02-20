@@ -11,12 +11,7 @@
 #include "asn_application.h"
 #include "headermqtt.h"
 #include "headersendcam.h"
-
- 
-//static unsigned char buf[4096];
-// unaligned basic per = 8
-// unaligned canonical per = 9
-// canonical xer = 11
+#include <sys/time.h>
 
 
 static size_t buf_offset;
@@ -53,54 +48,43 @@ CAM_t* create_cam_message(int lat, int lon) {
 
     // Initialize high frequency container
     cam->cam.camParameters.highFrequencyContainer.present = HighFrequencyContainer_PR_basicVehicleContainerHighFrequency;
-    //auto& highFreq = cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency;
+    BasicVehicleContainerHighFrequency_t* highFreq = &cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency;
 
-    // Set heading
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.heading.headingValue = 62;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.heading.headingConfidence = 8;
+    // Set high-frequency parameters
+    highFreq->heading.headingValue = 62;
+    highFreq->heading.headingConfidence = 8;
+    highFreq->speed.speedValue = 1163;
+    highFreq->speed.speedConfidence = 4;
+    highFreq->driveDirection = DriveDirection_forward;
+    highFreq->vehicleLength.vehicleLengthValue = 42;
+    highFreq->vehicleLength.vehicleLengthConfidenceIndication = VehicleLengthConfidenceIndication_trailerPresenceIsUnknown;
+    highFreq->vehicleWidth = 18;
+    highFreq->longitudinalAcceleration.longitudinalAccelerationValue = -2;
+    highFreq->longitudinalAcceleration.longitudinalAccelerationConfidence = 102;
+    highFreq->curvature.curvatureValue = 386;
+    highFreq->curvature.curvatureConfidence = CurvatureConfidence_onePerMeter_0_01;
+    highFreq->curvatureCalculationMode = CurvatureCalculationMode_yawRateUsed;
+    highFreq->yawRate.yawRateValue = 2354;
+    highFreq->yawRate.yawRateConfidence = YawRateConfidence_unavailable;
 
-    // Set speed
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.speed.speedValue = 1163;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.speed.speedConfidence = 4;
-
-    // Set drive direction
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.driveDirection = DriveDirection_forward;
-
-    // Set vehicle dimensions
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthValue = 42;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthConfidenceIndication = VehicleLengthConfidenceIndication_trailerPresenceIsUnknown;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.vehicleWidth = 18;
-
-    // Set acceleration values
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationValue = -2;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationConfidence = 102;
-
-    // Set curvature
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.curvature.curvatureValue = 386;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.curvature.curvatureConfidence = CurvatureConfidence_onePerMeter_0_01;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.curvatureCalculationMode = CurvatureCalculationMode_yawRateUsed;
-
-    // Set yaw rate
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.yawRate.yawRateValue = 2354;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.yawRate.yawRateConfidence = YawRateConfidence_unavailable;
-
-    // Set acceleration control (as a bit string)
-    uint8_t accelControl = 0x40;  // Binary: 01000000
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.accelerationControl = (AccelerationControl_t*)calloc(1, sizeof(AccelerationControl_t));
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.accelerationControl->buf = (uint8_t*)calloc(1, sizeof(uint8_t));
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.accelerationControl->buf[0] = accelControl;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.accelerationControl->size = 1;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.accelerationControl->bits_unused = 1;
+    // Set acceleration control
+    uint8_t accelControl = 0x40;
+    highFreq->accelerationControl = (AccelerationControl_t*)calloc(1, sizeof(AccelerationControl_t));
+    highFreq->accelerationControl->buf = (uint8_t*)calloc(1, sizeof(uint8_t));
+    highFreq->accelerationControl->buf[0] = accelControl;
+    highFreq->accelerationControl->size = 1;
+    highFreq->accelerationControl->bits_unused = 1;
 
     // Set steering wheel angle
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.steeringWheelAngle = (SteeringWheelAngle_t*)calloc(1, sizeof(SteeringWheelAngle_t));
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.steeringWheelAngle->steeringWheelAngleValue = 57;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.steeringWheelAngle->steeringWheelAngleConfidence = 1;
+    highFreq->steeringWheelAngle = (SteeringWheelAngle_t*)calloc(1, sizeof(SteeringWheelAngle_t));
+    highFreq->steeringWheelAngle->steeringWheelAngleValue = 57;
+    highFreq->steeringWheelAngle->steeringWheelAngleConfidence = 1;
 
     // Set lateral acceleration
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.lateralAcceleration = (LateralAcceleration_t*)calloc(1, sizeof(LateralAcceleration_t));
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.lateralAcceleration->lateralAccelerationValue = 43;
-    cam->cam.camParameters.highFrequencyContainer.choice.basicVehicleContainerHighFrequency.lateralAcceleration->lateralAccelerationConfidence = 102;
+    highFreq->lateralAcceleration = (LateralAcceleration_t*)calloc(1, sizeof(LateralAcceleration_t));
+    highFreq->lateralAcceleration->lateralAccelerationValue = 43;
+    highFreq->lateralAcceleration->lateralAccelerationConfidence = 102;
+    
     return cam;
 }
 
@@ -135,7 +119,6 @@ ritorno encode_cam_message(const CAM_t* cam) {
     return ritorno;  
 }
 
-
 void bin_to_hex(const unsigned char *bin, size_t bin_len, char **hex_str) {
     *hex_str = malloc(bin_len * 2 + 1); // Allocate memory for hex string (2 chars per byte + 1 for null terminator)
     
@@ -149,8 +132,6 @@ void process_hex_string(const char *hex_str) {
     printf("Received hex string: %s\n", hex_str);
 }
 
-
-
 //QUESTO HEADER è QUELLO FINALE DA USARE NEL FILE C++: int generate_uper_string(int lat, int lon) {
 int main() {
 
@@ -163,22 +144,25 @@ int main() {
         return 1;
     }
     
-    ritorno retval = encode_cam_message(cam);
+    //ritorno retval = encode_cam_message(cam);
+    //asn_encode_to_new_buffer_result_t res = retval.r;
+    struct timeval before;
+    gettimeofday(&before, NULL);
+    long beforesend = before.tv_sec * 1000 + before.tv_usec / 1000;
 
-    asn_encode_to_new_buffer_result_t res = retval.r;
-    
+    asn_encode_to_new_buffer_result_t res = encode_cam_message(cam).r;
+
     char *hex_string = NULL;
     bin_to_hex(res.buffer, res.result.encoded, &hex_string);
-    process_hex_string(hex_string); 
-
     int ret = send_cam(hex_string);
+    struct timeval after;
+    gettimeofday(&after, NULL);
+    long aftersend = after.tv_sec * 1000 + after.tv_usec / 1000;
+    printf("Tempo passato da frame a obu: %.2f\n", difftime(aftersend, beforesend));
 
     free(hex_string); 
 
-
-    //printf("retval vale %d: ", retval.b);
-    //printf("%d", retval.r);
-
     ASN_STRUCT_FREE(asn_DEF_CAM, cam);
+
     return 0;
 }

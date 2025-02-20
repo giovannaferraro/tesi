@@ -41,7 +41,7 @@ client.on_subscribe = on_subscribe
 client.on_message = on_message
 
 # Set the IP address of your Ethernet-connected device
-client.connect("broker.hivemq.com", 1883, 120)
+client.connect("127.0.0.1", 1883, 120)
 
 # Blocking call that processes network traffic, dispatches callbacks and
 # handles reconnecting.
