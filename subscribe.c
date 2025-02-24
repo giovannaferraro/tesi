@@ -91,39 +91,39 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
 
 // Callback function for when subscribed to the topic
 
-coord start_mqtt() {
-    // Initialize the Mosquitto library
-    //(mosquitto_lib_init);
-    mosquitto_lib_init(); 
-    
-    // Create a new Mosquitto client
-    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
-
-    if (!mosq) {
-        fprintf(stderr, "Failed to create Mosquitto instance.\n");
-        c.lat = 0;
-        c.lon = 0;
-        return c;
-    }
-    
-    // Set callbacks
-    mosquitto_connect_callback_set(mosq, on_connect);
-    mosquitto_subscribe_callback_set(mosq, on_subscribe);
-    mosquitto_message_callback_set(mosq, on_message);
-    
-    // Connect to the broker
-    if (mosquitto_connect(mosq, "127.0.0.1", 1883, 60) != MOSQ_ERR_SUCCESS) {
-        fprintf(stderr, "Unable to connect to broker.\n");
-        mosquitto_destroy(mosq);
-        mosquitto_lib_cleanup();
-        return c;
-    }
-    
-    mosquitto_loop_forever(mosq, -1, 1);
-    
-    // Clean up and free resources when done
-    mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
-
-    return c;
-}
+//coord start_mqtt() {
+//    // Initialize the Mosquitto library
+//    //(mosquitto_lib_init);
+//    mosquitto_lib_init(); 
+//    
+//    // Create a new Mosquitto client
+//    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
+//
+//    if (!mosq) {
+//        fprintf(stderr, "Failed to create Mosquitto instance.\n");
+//        c.lat = 0;
+//        c.lon = 0;
+//        return c;
+//    }
+//    
+//    // Set callbacks
+//    mosquitto_connect_callback_set(mosq, on_connect);
+//    mosquitto_subscribe_callback_set(mosq, on_subscribe);
+//    mosquitto_message_callback_set(mosq, on_message);
+//    
+//    // Connect to the broker
+//    if (mosquitto_connect(mosq, "127.0.0.1", 1883, 60) != MOSQ_ERR_SUCCESS) {
+//        fprintf(stderr, "Unable to connect to broker.\n");
+//        mosquitto_destroy(mosq);
+//        mosquitto_lib_cleanup();
+//        return c;
+//    }
+//    
+//    mosquitto_loop_forever(mosq, -1, 1);
+//    
+//    // Clean up and free resources when done
+//    mosquitto_destroy(mosq);
+//    mosquitto_lib_cleanup();
+//
+//    return c;
+//}

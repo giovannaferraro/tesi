@@ -8,6 +8,10 @@ import hashlib
 import os
 import json
 
+def compile_asn():
+  schema = asn.compile_files('ITS-Container.asn','uper')
+  return schema
+
 def encode(dict, cam):
   cam_bytes = cam.encode('CAM', dict)
   #print("byte: ", cam_bytes)
@@ -36,7 +40,8 @@ def calculate_hash_256(bodyMessage):
     m = hashlib.sha256(bodyMessage.encode('utf-8')).hexdigest()
     return m
 
-def send_cam(Ip_address, username, password, lat, lon, cam):
+#def send_cam(Ip_address, username, password, lat, lon, cam):
+def send_cam(lat, lon, cam):
     # qua le variabili vanno inizializzate manualmente in quanto i valori non vengono più presi da cloud.
     messageID = "2"
     timestamp = "Thu Mar 11 17:21:11 CET 2024"
@@ -60,7 +65,7 @@ def send_cam(Ip_address, username, password, lat, lon, cam):
             "messageBody": messageBody
             }
 
-    r = requests.post('http://' + Ip_address + '/proxy/msg', auth = (username,password), json= json_to_send)
+    #r = requests.post('http://' + Ip_address + '/proxy/msg', auth = (username,password), json= json_to_send)
 
-    response = r.content
-    print(response)
+    #response = r.content
+    print("generato cam")

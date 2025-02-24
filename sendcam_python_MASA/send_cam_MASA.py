@@ -7,9 +7,12 @@ import os
 #from google.cloud import firestore
 import json
 
-Ip_address = '192.168.12.122'
-username = 'setup'
-password = 'setup'
+#Ip_address = '10.0.1.157'
+#username = 'root'
+#password = 'suV2X01!'
+Ip_address = '10.0.1.158'
+username = 'root'
+password = 'v2x'
 
 def calculate_hash_256(bodyMessage):
     m = hashlib.sha256(bodyMessage.encode('utf-8')).hexdigest()
@@ -22,8 +25,8 @@ timestamp = "Thu Mar 11 17:21:11 CET 2024"
 messageBodyFormat = "UPER"
 messageType = "CAM"
 messageDirection = "Upstream"
-ripetitionDurantion = 600
-ripetitionInterval = 1000 
+ripetitionDurantion = -1
+ripetitionInterval = 0 
 messageBody = "02020000670e89d8005a0d70ee4e3af9f522342308e433c8545803e0e2458302968a7b35818224c2104700197980"
 hash = calculate_hash_256(messageBody)
 
