@@ -6,37 +6,21 @@
 #error "JSON_LIB_1 not defined!"
 #endif
 
-coord c;
-size_t i = 0;
+#define ADDRESS     "tcp://127.0.0.1:1883"  // NanoMQ broker address
+#define CLIENTID    "MQTTSubscriber"        // Unique client ID
+#define TOPIC       "/haura/data"           // Topic to subscribe to
+#define QOS         0                       // Quality of Service level
+#define TIMEOUT     10000L
 
-// Callback function for when connected to the broker
-void on_connect(struct mosquitto *mosq, void *obj, int rc) {
-    printf("Connected with result code %d\n", rc);
-    if (rc == 0) {
-        mosquitto_subscribe(mosq, NULL, "/haura/#", 0);
-    } else {
-        fprintf(stderr, "Failed to connect to broker. Error code: %d\n", rc);
-    }
-}
+coord c;  // Ensure coord is defined in headermqtt.h
 
-void on_subscribe(struct mosquitto *mosq, void *obj, int mid, int qos_count, const int *granted_qos) {
-    printf("Subscribed to topic\n");
-}
-
-
-// Callback function for when a message is received on the subscribed topic
-void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message) {
-    //printf("Received message on topic %s: %s\n", message->topic, (char *)message->payload);
-    if(i==500){
-        i = 0;
-        mosquitto_disconnect(mosq);
-        return;
-    }
-
+// Callback function to handle incoming messages
+int messageArrived(void *context, char *topicName, int topicLen, MQTTClient_message *message) {
+    // Print the received message payload (raw bytes)
+    //printf("Message received on topic '%s': %.*s\n", topicName, message->payloadlen, (char*)message->payload);
     struct timeval tv;
     gettimeofday(&tv, NULL);
-
-    // Parse the JSON data from the payload
+    // Parse the message payload as JSON using json-c
     json_object *dizionario = json_tokener_parse((char *)message->payload);
     
     if (dizionario != NULL) {
@@ -57,13 +41,11 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         long glass_time = strtol(new_str, NULL, 10); // Assuming you want the timestamp as a float
         
         long milliseconds = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-        printf("Current time in milliseconds: %ld\n", milliseconds);
-        printf("glass time %ld \n", glass_time);
+        //printf("Current time in milliseconds: %ld\n", milliseconds);
+        //printf("glass time %ld \n", glass_time);
 
         printf("Tempo passato da frame a obu: %.2f\n", difftime(milliseconds, glass_time));
         log_latency(difftime(milliseconds, glass_time));
-        i += 1;
-
 
         struct json_object *objects_array = json_object_object_get(data_obj, "objects");
 
@@ -81,51 +63,55 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         c.lat = (int)(json_object_get_double(latitude_obj)*1000000 + 0.5);
         c.lon = (int)(json_object_get_double(longitude_obj)*1000000 + 0.5);
 
+        // Print the extracted values
+        //printf("Latitude: %d\n", c.lat);
+        //printf("Longitude: %d\n", c.lon);
+
         // Free memory after use
         json_object_put(dizionario);
-        //mosquitto_disconnect(mosq);  // Disconnect from the broker
+        MQTTClient_freeMessage(&message);
+        MQTTClient_free(topicName);
+        return 1;
     } else {
         printf("Failed to parse JSON message.\n");
-        mosquitto_disconnect(mosq);
-        return;
+        return 0;
     }
 }
 
-// Callback function for when subscribed to the topic
-
 coord start_mqtt() {
-    // Initialize the Mosquitto library
-    //(mosquitto_lib_init);
-    mosquitto_lib_init(); 
-    
-    // Create a new Mosquitto client
-    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
+    MQTTClient client;
+    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
-    if (!mosq) {
-        fprintf(stderr, "Failed to create Mosquitto instance.\n");
+    // Initialize the MQTT client
+    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    conn_opts.cleansession = 1;
+    conn_opts.keepAliveInterval = 20;
+    MQTTClient_setCallbacks(client, NULL, NULL, messageArrived, NULL);
+
+    // Connect to the broker
+    if (MQTTClient_connect(client, &conn_opts) != MQTTCLIENT_SUCCESS) {
+        printf("Failed to connect to MQTT broker!\n");
         c.lat = 0;
         c.lon = 0;
         return c;
     }
-    
-    // Set callbacks
-    mosquitto_connect_callback_set(mosq, on_connect);
-    mosquitto_subscribe_callback_set(mosq, on_subscribe);
-    mosquitto_message_callback_set(mosq, on_message);
-    
-    // Connect to the broker
-    if (mosquitto_connect(mosq, "127.0.0.1", 1883, 60) != MOSQ_ERR_SUCCESS) {
-        fprintf(stderr, "Unable to connect to broker.\n");
-        mosquitto_destroy(mosq);
-        mosquitto_lib_cleanup();
-        return c;
-    }
-    
-    mosquitto_loop_forever(mosq, -1, 1);
-    
-    // Clean up and free resources when done
-    mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
+
+    printf("Connected to MQTT broker at %s\n", ADDRESS);
+
+    // Subscribe to the topic
+    MQTTClient_subscribe(client, TOPIC, QOS);
+    printf("Subscribed to topic: %s\n", TOPIC);
+
+    // Keep the program running to receive messages
+    //while (1) {
+    //    MQTTClient_yield();  // Sleep for 1 second
+    //}
+
+    // Cleanup (not reached in this example)
+    MQTTClient_disconnect(client, TIMEOUT);
+    MQTTClient_destroy(&client);
 
     return c;
 }
+
+

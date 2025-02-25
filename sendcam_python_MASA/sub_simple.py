@@ -11,8 +11,6 @@ from funzioni import *
 schema = compile_asn()
 i = 0   
 
-
-
 def print_msg(client, userdata, message):
     global i
     dizionario = json.loads(message.payload.decode('utf-8'))
@@ -41,7 +39,7 @@ def print_msg(client, userdata, message):
     print("T2 - T0 = tempo totale:  ", gencam - glass_time)
     #tempo = str(gencam - glass_time)
     i += 1
-    with open('test1.txt','a+') as f:
+    with open('test3.txt','a+') as f:
         f.write(f"{(gencam - glass_time)*1000}\n")
     if i==500:
         client.disconnect()

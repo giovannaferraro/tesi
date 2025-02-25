@@ -1,0 +1,2 @@
+gcc -o mosq -I./encode_asn_veroh/. main.c subscribe.c sendcam.c ./encode_asn_veroh/*.c -ljson-c -lpthread -lssl -lcrypto -lcurl -ljansson -lmosquitto -Wdeprecated-declarations
+./mosq

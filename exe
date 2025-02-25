@@ -1,0 +1,2 @@
+gcc -o test -I./encode_asn_veroh/. main.c subscribe_nano.c sendcam.c ./encode_asn_veroh/*.c -lpaho-mqtt3c -ljson-c -lpthread -lssl -lcrypto -lcurl -ljansson -Wdeprecated-declarations
+./test
