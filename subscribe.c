@@ -27,12 +27,7 @@ void on_subscribe(struct mosquitto *mosq, void *obj, int mid, int qos_count, con
 // Callback function for when a message is received on the subscribed topic
 void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message) {
     //printf("Received message on topic %s: %s\n", message->topic, (char *)message->payload);
-    if(i==500){
-        i = 0;
-        mosquitto_disconnect(mosq);
-        return;
-    }
-
+    
     struct timeval tv;
     gettimeofday(&tv, NULL);
 
@@ -61,7 +56,7 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         printf("glass time %ld \n", glass_time);
 
         printf("Tempo passato da frame a obu: %.2f\n", difftime(milliseconds, glass_time));
-        log_latency(difftime(milliseconds, glass_time));
+        log_latency(difftime(milliseconds, glass_time), "latency_3.txt");
         i += 1;
 
 
@@ -86,7 +81,6 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         //mosquitto_disconnect(mosq);  // Disconnect from the broker
     } else {
         printf("Failed to parse JSON message.\n");
-        mosquitto_disconnect(mosq);
         return;
     }
 }
@@ -114,7 +108,7 @@ coord start_mqtt() {
     mosquitto_message_callback_set(mosq, on_message);
     
     // Connect to the broker
-    if (mosquitto_connect(mosq, "127.0.0.1", 1883, 60) != MOSQ_ERR_SUCCESS) {
+    if (mosquitto_connect(mosq, "127.0.0.1", 1883, 10) != MOSQ_ERR_SUCCESS) {
         fprintf(stderr, "Unable to connect to broker.\n");
         mosquitto_destroy(mosq);
         mosquitto_lib_cleanup();
@@ -123,7 +117,6 @@ coord start_mqtt() {
     
     mosquitto_loop_forever(mosq, -1, 1);
     
-    // Clean up and free resources when done
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();
 

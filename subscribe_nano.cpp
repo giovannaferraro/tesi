@@ -1,16 +1,13 @@
-#include "headermqtt_nano.h"
+#include "/root/tesi/encode_asn_veroh/headermqtt_nano.h"
 #include "savelatency.h"
-#ifdef MQTT_SUBSCRIPTION_H
-#include <json-c/json.h>
-#else
-#error "JSON_LIB_1 not defined!"
-#endif
+using namespace simdjson;
 
 #define ADDRESS     "tcp://127.0.0.1:1883"
 #define CLIENTID    "HighPerformanceMQTTSubscriber"
 #define TOPIC       "/haura/data"
 #define QOS         0
 #define TIMEOUT     10000L
+
 
 // Flag to indicate when to stop the client
 volatile int running = 1;
@@ -20,7 +17,7 @@ void handle_signal(int sig) {
     running = 0;
 }
 
-// Global coord variable to store the latest position
+// Global coord variable
 coord latest_position = {0, 0};
 
 // Message callback function
@@ -29,68 +26,52 @@ int message_callback(void *context, char *topicName, int topicLen, MQTTClient_me
     gettimeofday(&tv, NULL);
     long reception_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
     
-    // Process the message as quickly as possible
-    json_object *root = json_tokener_parse((char*)message->payload);
-    if (root == NULL) {
-        MQTTClient_freeMessage(&message);
-        MQTTClient_free(topicName);
-        return 0;
-    }
+    // Process with simdjson
+    simdjson::ondemand::parser parser;
 
-    // Fast path extraction - only get what we need
-    json_object *data_obj = NULL;
-    json_object *head_obj = NULL;
-    json_object *stamp_obj = NULL;
-    json_object *objects_array = NULL;
-    json_object *first_object = NULL;
-    json_object *latitude_obj = NULL;
-    json_object *longitude_obj = NULL;
-    
-    if (!json_object_object_get_ex(root, "data", &data_obj)) goto cleanup;
-    if (!json_object_object_get_ex(data_obj, "head", &head_obj)) goto cleanup;
-    if (!json_object_object_get_ex(head_obj, "stamp", &stamp_obj)) goto cleanup;
-    if (!json_object_object_get_ex(data_obj, "objects", &objects_array)) goto cleanup;
-    
-    // Get timestamp
-    const char *stamp_str = json_object_get_string(stamp_obj);
-    char timestamp_str[14]; 
-    strncpy(timestamp_str, stamp_str, 13);
-    timestamp_str[13] = '\0';
-    long message_time = strtol(timestamp_str, NULL, 10);
-    
-    // Calculate latency
-    long latency = reception_time - message_time;
-    log_latency(latency, "latency_10_nano.txt");
-    
-    // Get first object if available
-    first_object = json_object_array_get_idx(objects_array, 0);
-    
-    if (json_object_object_get_ex(first_object, "latitude", &latitude_obj) &&
-        json_object_object_get_ex(first_object, "longitude", &longitude_obj)) {
+    try {
+        // Parse the message payload
+        simdjson::padded_string json_data(payload, payloadlen);   
+        simdjson::ondemand::document doc = parser.iterate(json_data);     
+        // Extract timestamp directly
+        int64_t message_time = doc["data"]["head"]["stamp"].get_int64();
+        
+        long message_time = std::stol(stamp_str.substr(0, 13));
+        
+        // Calculate latency
+        long latency = reception_time - message_time;
+        log_latency(latency, "test_simdjson.txt"); // Your existing function
+        
+        // Extract coordinates
+        double latitude = double(doc["data"]["objects"].at(0)["latitude"]);
+        double longitude = double(doc["data"]["objects"].at(0)["longitude"]);
         
         // Update the global position
-        latest_position.lat = (int)(json_object_get_double(latitude_obj) * 1000000 + 0.5);
-        latest_position.lon = (int)(json_object_get_double(longitude_obj) * 1000000 + 0.5);
+        latest_position.lat = (int)(latitude * 1000000 + 0.5);
+        latest_position.lon = (int)(longitude * 1000000 + 0.5);
         
-        // Optional: Print processing stats (can be disabled for max performance)
-        printf("Latency: %ld ms\n", latency);
+        // Optional: Print latency
+        std::cout << "Latency: " << latency << " ms" << std::endl;
+        
+    } catch (const simdjson::simdjson_error& e) {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
     }
     
-    return 1;
-cleanup:
-    // Clean up
-    json_object_put(root);
+    // Clean up message resources
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);
+    
+    return 1;
 }
 
+// Rest of your code remains largely the same...
 // Connection lost callback
 void connection_lost(void *context, char *cause) {
     printf("Connection lost. Cause: %s\n", cause ? cause : "Unknown");
     // You might want to attempt reconnection here
 }
 
-coord start_mqtt() {
+int main() {
     MQTTClient client;
     MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
     int rc;
@@ -100,7 +81,7 @@ coord start_mqtt() {
     signal(SIGTERM, handle_signal);
     
     // Configure connection options for high performance
-    conn_opts.keepAliveInterval = 10;       // Shorter interval
+    conn_opts.keepAliveInterval = 20;       // Shorter interval
     conn_opts.cleansession = 1;             // Clean session for faster startup
     conn_opts.connectTimeout = 5;           // Fast connect timeout
     
@@ -108,21 +89,21 @@ coord start_mqtt() {
     if ((rc = MQTTClient_create(&client, ADDRESS, CLIENTID, 
                                MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS) {
         fprintf(stderr, "Failed to create client, return code: %d\n", rc);
-        return latest_position;
+        return 1;
     }
     
     // Set callbacks
     if ((rc = MQTTClient_setCallbacks(client, NULL, connection_lost, message_callback, NULL)) != MQTTCLIENT_SUCCESS) {
         fprintf(stderr, "Failed to set callbacks, return code: %d\n", rc);
         MQTTClient_destroy(&client);
-        return latest_position;
+        return 1;
     }
     
     // Connect to broker
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
         fprintf(stderr, "Failed to connect, return code: %d\n", rc);
         MQTTClient_destroy(&client);
-        return latest_position;
+        return 1;
     }
     
     // Subscribe to topic
@@ -130,7 +111,7 @@ coord start_mqtt() {
         fprintf(stderr, "Failed to subscribe, return code: %d\n", rc);
         MQTTClient_disconnect(client, TIMEOUT);
         MQTTClient_destroy(&client);
-        return latest_position;
+        return 1;
     }
     
     printf("Subscribed to %s, receiving messages at maximum speed\n", TOPIC);
@@ -159,5 +140,5 @@ coord start_mqtt() {
     MQTTClient_unsubscribe(client, TOPIC);
     MQTTClient_disconnect(client, TIMEOUT);
     MQTTClient_destroy(&client);
-    return latest_position;
+    return 1;
 }

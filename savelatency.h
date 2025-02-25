@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-void log_latency(float latency) {
+void log_latency(float latency, char* filename) {
     // Open file in append mode
-    FILE *file = fopen("latency_data_2.txt", "a");
+    FILE *file = fopen(filename, "a");
     
     // Check if the file opened successfully
     if (file == NULL) {

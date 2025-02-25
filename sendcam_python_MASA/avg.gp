@@ -1,6 +1,6 @@
 reset
 set terminal pngcairo size 800,600
-set output "latency_plot_2.png"
+set output "latency_8.png"
 
 # Set plot title and labels
 set title "Latency Distribution"
@@ -9,10 +9,10 @@ set ylabel "Latency (ms)"
 set grid
 
 # Read latency data from the file and plot
-plot "test_5.txt" using 1 with linespoints title "Latencies"
+plot "test8.txt" using 1 with linespoints title "Latencies"
 
 # Calculate the average latency
-average_latency = system("awk '{s+= $1} END {print s/NR}' test_5.txt")
+average_latency = system("awk '{s+= $1} END {print s/NR}' test8.txt")
 
 # The average_latency is a string, so we need to convert it to a number
 # Let's force evaluation of the system result and print it
