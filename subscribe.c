@@ -13,7 +13,7 @@ size_t i = 0;
 void on_connect(struct mosquitto *mosq, void *obj, int rc) {
     printf("Connected with result code %d\n", rc);
     if (rc == 0) {
-        mosquitto_subscribe(mosq, NULL, "/haura/#", 0);
+        mosquitto_subscribe(mosq, NULL, "/haura/data", 2);
     } else {
         fprintf(stderr, "Failed to connect to broker. Error code: %d\n", rc);
     }
@@ -22,7 +22,6 @@ void on_connect(struct mosquitto *mosq, void *obj, int rc) {
 void on_subscribe(struct mosquitto *mosq, void *obj, int mid, int qos_count, const int *granted_qos) {
     printf("Subscribed to topic\n");
 }
-
 
 // Callback function for when a message is received on the subscribed topic
 void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message) {
@@ -40,6 +39,7 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         // Extract timestamp from the JSON object
         json_object *data_obj = json_object_object_get(dizionario, "data");
         json_object *head_obj = json_object_object_get(data_obj, "head");
+        json_object *n_obj = json_object_object_get(data_obj, "nObjects");
         json_object *stamp_obj = json_object_object_get(head_obj, "stamp");
         
         // Convert stamp to float (as timestamp)
@@ -52,12 +52,6 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         long glass_time = strtol(new_str, NULL, 10); // Assuming you want the timestamp as a float
         
         long milliseconds = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-        printf("Current time in milliseconds: %ld\n", milliseconds);
-        printf("glass time %ld \n", glass_time);
-
-        printf("Tempo passato da frame a obu: %.2f\n", difftime(milliseconds, glass_time));
-        log_latency(difftime(milliseconds, glass_time), "latency_3.txt");
-        i += 1;
 
 
         struct json_object *objects_array = json_object_object_get(data_obj, "objects");
@@ -76,16 +70,18 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         c.lat = (int)(json_object_get_double(latitude_obj)*1000000 + 0.5);
         c.lon = (int)(json_object_get_double(longitude_obj)*1000000 + 0.5);
 
+        // Convert object to string
+        double nobj = json_object_get_double(n_obj);
+        printf("Tempo passato da frame a obu: %.2f e n obj %f and SIZE %d\n", difftime(milliseconds, glass_time), nobj, message->payloadlen);
+        log_latency(difftime(milliseconds, glass_time), "latency_qos2_start_maxinf_2.txt");
+
         // Free memory after use
         json_object_put(dizionario);
-        //mosquitto_disconnect(mosq);  // Disconnect from the broker
     } else {
         printf("Failed to parse JSON message.\n");
         return;
     }
 }
-
-// Callback function for when subscribed to the topic
 
 coord start_mqtt() {
     // Initialize the Mosquitto library
@@ -115,8 +111,17 @@ coord start_mqtt() {
         return c;
     }
     
-    mosquitto_loop_forever(mosq, -1, 1);
-    
+    //mosquitto_loop_forever(mosq, -1, 1);
+    mosquitto_loop_start(mosq);
+
+    //while (true) {
+    //    sleep(10);  // Keep the program alive to receive messages
+    //}
+    pause();
+
+    // To stop it cleanly before exiting:
+    mosquitto_loop_stop(mosq, true);
+    mosquitto_disconnect(mosq);  // Disconnect from the broker
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();
 
