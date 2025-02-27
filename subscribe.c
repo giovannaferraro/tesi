@@ -1,5 +1,4 @@
 #include "headermqtt.h"
-#include "savelatency.h"
 #ifdef MQTT_SUBSCRIPTION_H
 #include <json-c/json.h>
 #else
