@@ -73,7 +73,8 @@ void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_messag
         // Convert object to string
         double nobj = json_object_get_double(n_obj);
         printf("Tempo passato da frame a obu: %.2f e n obj %f and SIZE %d\n", difftime(milliseconds, glass_time), nobj, message->payloadlen);
-        log_latency(difftime(milliseconds, glass_time), "latency_qos2_start_maxinf_2.txt");
+
+        log_latency(difftime(milliseconds, glass_time), message->payloadlen, "left0.txt");
 
         // Free memory after use
         json_object_put(dizionario);

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void log_latency(float latency, char* filename) {
+void log_latency(float latency, int payload, char* filename) {
     // Open file in append mode
     FILE *file = fopen(filename, "a");
     
@@ -13,7 +13,7 @@ void log_latency(float latency, char* filename) {
     }
 
     // Write the float value to the file with 3 decimal precision
-    fprintf(file, "%.3f\n", latency);
+    fprintf(file, "%.3f %d\n", latency, payload);
 
     // Close the file
     fclose(file);
