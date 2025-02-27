@@ -9,7 +9,6 @@
 #include "/root/tesi/paho.mqtt.c/src/MQTTClient.h"
 #include <sys/time.h>
 #include <time.h>
-#include "savelatency.h"
 #include <signal.h>
 #include <json-c/json.h>
 
