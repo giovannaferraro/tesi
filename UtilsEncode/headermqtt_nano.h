@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>  // ✅ Required for sleep()
-#include "/root/tesi/paho.mqtt.c/src/MQTTClient.h"
+#include "/root/paho.mqtt.c/src/MQTTClient.h"
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
