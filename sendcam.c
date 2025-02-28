@@ -34,7 +34,6 @@ char* calculate_sha256(const char* input) {
 
 int send_cam(char* UPER) 
 {
-    // Initialize variables
     struct timeval time;
 
     gettimeofday(&time, NULL);
@@ -49,10 +48,8 @@ int send_cam(char* UPER)
     int repetitionInterval = 1000;
     const char* messageBody = UPER;
     
-    // Calculate hash
     char* hash = calculate_sha256(messageBody);
 
-    // Create JSON object
     json_t* root = json_object();
     json_object_set_new(root, "messageId", json_string(messageID));
     json_object_set_new(root, "timestamp", json_string(timestamp));
@@ -68,7 +65,7 @@ int send_cam(char* UPER)
     char* json_str = json_dumps(root, 0);
     gettimeofday(&time, NULL);
     long time_after = time.tv_sec * 1000 + time.tv_usec / 1000;
-    printf("Tempo passato per sottoscriversi a mqtt: %.2f\n", difftime(time_after, time_before));
+    printf("Tempo passato per compilare creare CAM: %.6f\n", difftime(time_after, time_before));
 
 
     // Setup the HTTP client using libcurl

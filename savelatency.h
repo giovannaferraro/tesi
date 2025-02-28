@@ -18,3 +18,20 @@ void log_latency(float latency, int payload, char* filename) {
     // Close the file
     fclose(file);
 }
+
+void log_glasstime(long latency, char* filename) {
+    // Open file in append mode
+    FILE *file = fopen(filename, "a");
+    
+    // Check if the file opened successfully
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Write the float value to the file with 3 decimal precision
+    fprintf(file, "%ld\n", latency);
+
+    // Close the file
+    fclose(file);
+}
